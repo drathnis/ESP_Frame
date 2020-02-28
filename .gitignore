@@ -28,8 +28,8 @@ Git Ignored
 */NotForGit
 *NotForGit
 
-*/__vm
-*__vm
+*/__vm__
+*__vm__
 *.vcxproj
 *.filters
 *.json
