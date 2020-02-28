@@ -25,7 +25,11 @@ Git Ignored
 # My Ignored files
 *ForGit
 */ForGit
-*.__vm
+*/NotForGit
+*NotForGit
+
+*/__vm
+*__vm
 *.vcxproj
 *.filters
 *.json
