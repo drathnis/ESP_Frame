@@ -8,6 +8,32 @@
 #include <ArduinoJson.hpp>
 #include <ArduinoJson.h>
 
+
+typedef enum {
+	set_power,
+	toggle,
+	set_bright,
+	set_rgb,
+	set_hsv,
+	set_strip,
+	set_ct,
+	set_animation,
+	not_recognized
+} availableModes;
+
+
+typedef enum {
+	rgb_mode,
+	animation_mode,
+} colorModes;
+
+typedef enum {
+	wheel_animation,
+	chase_animation,
+	raindbow_animation,
+	none,
+} animations;
+
 #define SSID		YOUR_SSID
 #define PASSKEY		YOUR_PASS
 
@@ -37,30 +63,15 @@ int hue = 0;
 int colorTemp = 0;
 int rgbInt = 0;
 int firmwareVersion = 1;
-int colorMode = 2;
-
+int colorMode = rgb_mode;
+int selctedAnimation = none;
 
 String replyMSG;
 
 StaticJsonDocument<1024> doc;
 
 
-typedef enum {
-	set_power,
-	toggle,
-	set_bright,
-	set_rgb,
-	set_hsv,
-	set_strip,
-	set_ct,
-	not_recognized
-} availableModes;
 
-
-typedef enum {
-	rgb,
-	visualizer,
-} colorModes;
 
 
 #define LED_PIN_TOP			14
@@ -143,10 +154,158 @@ void loop() {
   
 
 
-
 	udp_multicastListener();
 
 	tcp_Control();
+	
+	
+	//testing
+
+	chaseAnimation();
+
+	if (colorMode == animation_mode){
+		runAnimation();
+	}
+
+
+}
+
+void runAnimation() {
+
+	switch (selctedAnimation){
+		case wheel_animation:
+			wheelAnimation();
+			break;
+		case chase_animation:
+			chaseAnimation();
+			break;
+		case raindbow_animation:
+			raindbowAnimation();
+			break;
+
+	default:
+		break;
+	}
+
+
+}
+
+void wheelAnimation() {
+
+
+
+}
+
+
+void chaseAnimation() {
+
+	const long interval = 50;
+
+	static unsigned long previousMillis = 0;
+
+
+	unsigned long currentMillis = millis();
+
+	if (currentMillis - previousMillis >= interval) {
+
+		previousMillis = currentMillis;
+		chase_do();
+
+
+
+
+	}
+}
+
+void chase_do() {
+
+	static int pos = 0;
+	static bool top = true;
+	static int currentStrip = 0;
+
+
+	if (top){
+
+		pos++;
+
+		if(pos == NUM_LEDS) {
+			currentStrip = 1;
+			top = false;
+		}
+
+
+
+	}
+
+
+	if (!top) {
+
+		pos--;
+
+		if (pos == 0) {
+			currentStrip = 0;
+			top = true;
+		}
+
+	}
+
+
+	for (size_t i = 0; i < NUM_LEDS; i++)
+	{
+		strip[0].leds[i].r = 255;
+		strip[1].leds[1].r = 255;
+		strip[0].leds[i].b = 0;
+		strip[1].leds[1].b = 0;
+		if (i == pos)
+		{
+			
+			strip[currentStrip].leds[i].r = 0;
+			strip[currentStrip].leds[i].b = 255;
+
+			if (pos > 0 && top)
+			{
+				strip[currentStrip].leds[i-1].r = 255;
+				strip[currentStrip].leds[i - 1].b = 0;
+			}
+			else if (pos < NUM_LEDS && !top)
+			{
+				strip[currentStrip].leds[i + 1].r = 255;
+				strip[currentStrip].leds[i + 1].b = 0;
+			}
+			
+
+
+		}
+
+	}
+
+
+	Serial.println(pos);
+
+	controllers[0]->showLeds();
+	controllers[1]->showLeds();
+
+
+}
+
+
+void raindbowAnimation() {
+
+	const int FRAMES_PER_SECOND = 120;
+	static uint8_t gHue = 0;
+	//static uint8_t rHue = 255;
+	EVERY_N_MILLISECONDS(20) { gHue++; }
+
+	//rHue--;
+
+	fill_rainbow(strip[0].leds, NUM_LEDS, gHue, 7);
+	fill_rainbow(strip[1].leds, NUM_LEDS, gHue, 7);
+
+	controllers[0]->showLeds();
+	controllers[1]->showLeds();
+
+	delay(1000 / FRAMES_PER_SECOND);
+
 
 }
 
@@ -280,11 +439,13 @@ void processCommand(const String cmd) {
 
 	switch (getModeValue(method)) {
 	case set_power:
+		colorMode = rgb_mode;
 		Serial.println("set_power");
 		Serial.println("TODO");
 		//TODO
 		break;
 	case toggle:
+		colorMode = rgb_mode;
 		Serial.println("toggle");
 		toggle_strip();
 		break;
@@ -292,16 +453,17 @@ void processCommand(const String cmd) {
 		Serial.print("set_bright: ");
 		brightness = doc["params"][0];
 		setBrightness();
-		colorMode = rgb;
+		colorMode = rgb_mode;
 		break;
 	case set_rgb:
 		Serial.println("set_rgb");
 		setColorRgb(doc["params"][0]);
 		SetColor();
-		colorMode = rgb;
+		colorMode = rgb_mode;
 		break;
 
 	case set_hsv:
+		colorMode = rgb_mode;
 		Serial.println("set_hsv");
 		hue = doc["params"][0];
 		sat = doc["params"][1];
@@ -309,15 +471,20 @@ void processCommand(const String cmd) {
 		SetColor();
 		break;
 	case set_strip:
+		colorMode = rgb_mode;
 		Serial.println("set_strip");
 		chosenStrip = doc["params"][0];
 		break;
 	case set_ct:
+		colorMode = rgb_mode;
 		Serial.println("set_ct");
 		colorTemp = doc["params"][0];
 		Serial.println(colorTemp);
 		setColorTemp();
 		break;
+	case set_animation:
+		colorMode = animation_mode;
+		selctedAnimation = doc["params"][0];
 
 	case not_recognized:
 	default:

@@ -13,6 +13,25 @@
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
+
+
+
+# Private files
+Git Ignored
+*/Git Ignored
+*Git Ignored
+*/Git Ignored/
+
+# My Ignored files
+*ForGit
+*/ForGit
+*.__vm
+*.vcxproj
+*.filters
+*.json
+*.vcxproj.filters
+*.vcxproj.user
+
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/
